@@ -59,3 +59,20 @@ def set_type(bitboard, id, new_type):
     #has_moved_ = int(has_moved(to_mod))
     is_checked_  = int(is_checked(to_mod))
     bitboard[id] = (color << SHIFT_COLOR) | (row << SHIFT_ROW) | (column << SHIFT_COLUMN) | (type << SHIFT_TYPE) | (1 << SHIFT_MOVED) | is_checked_
+
+def representation_of_board(square_piece_board, bitboard):
+    x = 0
+    for i in range(8):
+        for j in range(8):
+            if square_piece_board[i][j] == -1:
+                x <<= 4
+            else:
+                color = get_color(bitboard[square_piece_board[i][j]])
+                type_ =  get_type(bitboard[square_piece_board[i][j]])
+                to_add = (color.value << 3) | (type_.value + 1)
+                x |= to_add
+                x <<= 4
+
+    return x
+
+print(1 << 512)

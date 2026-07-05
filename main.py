@@ -28,6 +28,9 @@ col = 0
 board = []
 last_move = [0, 0]
 turn = Color.WHITE
+rule_50_moves = 0 # do plus one each time no pawn is moved and no capture occurs
+dict_positions = dict()
+is_en_passant_possible_for_next_player = False
 
 for j in range(0, 1081-135, 135):
     board.append([])
@@ -127,6 +130,8 @@ kings_id = [square_centric_board[7][4], square_centric_board[0][4]]
 print(white_pieces)
 print(black_pieces)
 
+dict_positions[representation_of_board(square_centric_board, bitboard_dict)] = 1
+
 first_press = True
 freeze_game = False
 r1, c1, r2, c2 = 0, 0, 0, 0
@@ -201,6 +206,10 @@ def button_pressed(event):
     global freeze_game
     global r1, c1, r2, c2
     global turn
+    global rule_50_moves
+    global is_en_passant_possible_for_next_player
+
+
 
     if freeze_game:
         return
@@ -254,6 +263,9 @@ def button_pressed(event):
                     else:
                         black_pieces.remove(id_arriving_square)
                     canvas.itemconfigure(id_arriving_square, image="")
+                else:
+                    if piece_type != Piece.PAWN:
+                        rule_50_moves += 1
 
                 if (r1+c1)%2 == 0:
                     canvas.itemconfigure(board[r1][c1], fill="antique white")
@@ -309,39 +321,89 @@ def button_pressed(event):
                 set_new_coord(bitboard_dict, r2, c2, id_piece)
                 last_move[1] = bitboard_dict[id_piece]
 
+                rep_board = representation_of_board(square_centric_board, bitboard_dict)
+                if rep_board in dict_positions:
+                    dict_positions[rep_board] += 1
+                else:
+                    if not is_en_passant_possible_for_next_player:
+                        dict_positions[rep_board] = 1
+
                 if turn == Color.WHITE:
                     black_king_id = kings_id[1]
                     black_king_row = get_row(bitboard_dict[black_king_id])
                     black_king_col = get_column(bitboard_dict[black_king_id])
-                    if len(move_generation(black_pieces, square_centric_board, bitboard_dict, last_move, kings_id, Color.BLACK)) == 0:
+                    move_possible_for_black = move_generation(black_pieces, square_centric_board, bitboard_dict, last_move, kings_id, Color.BLACK)
+                    is_en_passant_possible_for_next_player = False
+                    for i in move_possible_for_black:
+                        if i[3] == MOVE.EN_PASSANT:
+                            is_en_passant_possible_for_next_player = True
+                            break
+                        
+
+                    
+                    if len(move_possible_for_black) == 0:
                         freeze_game = True
                         end_frame = ttk.Frame(canvas)
                         end_frame.grid(column=0, row=0)
                         if valid_after_scan_for_king_checks_after_move(black_king_row, black_king_col, black_king_row, black_king_col, \
                                                                     square_centric_board, bitboard_dict, black_king_id, MOVE.NORMAL):
-                            label = ttk.Label(end_frame, text="Draw")
+                            label = ttk.Label(end_frame, text="Draw by stalemate")
                             label.grid(column=0, row=0)
                         else:
                             label = ttk.Label(end_frame, text="White wins")
                             label.grid(column=0, row=0)
-                    print(move_generation(black_pieces, square_centric_board, bitboard_dict, last_move, kings_id, Color.BLACK))
+                    else:
+                        if rule_50_moves == 100:
+                            freeze_game = True
+                            end_frame = ttk.Frame(canvas)
+                            end_frame.grid(column=0, row=0)
+                            label = ttk.Label(end_frame, text="Draw by the 50 moves rule")
+                            label.grid(column=0, row=0)
+                        else:
+                            if rep_board in dict_positions and dict_positions[rep_board] == 3:
+                                freeze_game = True
+                                end_frame = ttk.Frame(canvas)
+                                end_frame.grid(column=0, row=0)
+                                label = ttk.Label(end_frame, text="Draw by repetitions")
+                                label.grid(column=0, row=0)
+                    print(move_possible_for_black)
                     turn = Color.BLACK
                 else:
                     white_king_id = kings_id[0]
                     white_king_row = get_row(bitboard_dict[white_king_id])
                     white_king_col = get_column(bitboard_dict[white_king_id])
-                    print(move_generation(white_pieces, square_centric_board, bitboard_dict, last_move, kings_id, Color.WHITE))
-                    if len(move_generation(white_pieces, square_centric_board, bitboard_dict, last_move, kings_id, Color.WHITE)) == 0:
+                    move_possible_for_white = move_generation(white_pieces, square_centric_board, bitboard_dict, last_move, kings_id, Color.WHITE)
+                    is_en_passant_possible_for_next_player = False
+                    for i in move_possible_for_white:
+                        if i[3] == MOVE.EN_PASSANT:
+                            is_en_passant_possible_for_next_player = True
+                            break
+                    print(move_possible_for_white)
+                    if len(move_possible_for_white) == 0:
                         freeze_game = True
                         end_frame = ttk.Frame(canvas)
                         end_frame.grid(column=0, row=0)
                         if valid_after_scan_for_king_checks_after_move(white_king_row, white_king_col, white_king_row, white_king_col, \
                                                                     square_centric_board, bitboard_dict, white_king_id, MOVE.NORMAL):
-                            label = ttk.Label(end_frame, text="Draw")
+                            label = ttk.Label(end_frame, text="Draw by stalemate")
                             label.grid(column=0, row=0)
                         else:
                             label = ttk.Label(end_frame, text="Black wins")
                             label.grid(column=0, row=0)
+                    else:
+                        if rule_50_moves == 100:
+                            freeze_game = True
+                            end_frame = ttk.Frame(canvas)
+                            end_frame.grid(column=0, row=0)
+                            label = ttk.Label(end_frame, text="Draw by the 50 moves rule")
+                            label.grid(column=0, row=0)
+                        else:
+                            if rep_board in dict_positions and dict_positions[rep_board] == 3:
+                                freeze_game = True
+                                end_frame = ttk.Frame(canvas)
+                                end_frame.grid(column=0, row=0)
+                                label = ttk.Label(end_frame, text="Draw by repetitions")
+                                label.grid(column=0, row=0)
                     turn = Color.WHITE
             else:
                 if (r1+c1)%2 == 0:

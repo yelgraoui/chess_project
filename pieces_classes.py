@@ -12,5 +12,8 @@ class Piece(Enum):
     KING = 4
     QUEEN = 5
 
+
+
+
 #print(Color(0), Color(1), Piece(4))
 # print(int(True), int(False))
