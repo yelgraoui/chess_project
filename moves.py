@@ -14,15 +14,151 @@ def check_bounds(r, c):
     return r >= 0 and r < 8 and c >= 0 and c < 8
 
 
+def make_move(id, r1, c1, r2, c2, piece_square_board, bitboard, king_id, move_type, promotion_type):
+
+    old_type = get_type(bitboard[id])
+    piece_captured = -1
+    old_has_moved = has_moved(bitboard[id])
+
+    match move_type:
+        case MOVE.NORMAL:
+            piece_captured = piece_square_board[r2][c2]
+            piece_square_board[r1][c1] = -1
+            piece_square_board[r2][c2] = id
+            set_new_coord(bitboard, r2, c2, id)
+
+        case MOVE.CASTLE:
+            color = get_color(bitboard[id])
+            if color == Color.WHITE:
+                if c2-c1 > 0:
+                    piece_square_board[r2][c2] = id
+                    piece_square_board[r2][c2-1] = piece_square_board[7][7]
+                    set_new_coord(bitboard, r2, c2, id)
+                    set_new_coord(bitboard, r2, c2-1, piece_square_board[7][7])
+                    piece_square_board[r1][c1] = -1
+                    piece_square_board[7][7] = -1
+                else:
+                    piece_square_board[r2][c2] = id
+                    piece_square_board[r2][c2+1] = piece_square_board[7][0]
+                    set_new_coord(bitboard, r2, c2, id)
+                    set_new_coord(bitboard, r2, c2+1, piece_square_board[7][0])
+                    piece_square_board[r1][c1] = -1
+                    piece_square_board[7][0] = -1
+            else:
+                if c2-c1 > 0:
+                    piece_square_board[r2][c2] = id
+                    piece_square_board[r2][c2-1] = piece_square_board[0][7]
+                    set_new_coord(bitboard, r2, c2, id)
+                    set_new_coord(bitboard, r2, c2-1, piece_square_board[0][7])
+                    piece_square_board[r1][c1] = -1
+                    piece_square_board[0][7] = -1
+                else:
+                    piece_square_board[r2][c2] = id
+                    piece_square_board[r2][c2+1] = piece_square_board[0][0]
+                    set_new_coord(bitboard, r2, c2, id)
+                    set_new_coord(bitboard, r2, c2+1, piece_square_board[0][0])
+                    piece_square_board[r1][c1] = -1
+                    piece_square_board[0][0] = -1
+
+        case MOVE.EN_PASSANT:
+            color = get_color(bitboard[piece_square_board[r1][c1]])
+            if color == Color.WHITE:
+                piece_captured = piece_square_board[r2+1][c2]
+                piece_square_board[r2][c2] = id
+                piece_square_board[r1][c1] = -1
+                piece_square_board[r2+1][c2] = -1
+                set_new_coord(bitboard, r2, c2, id)
+            else:
+                piece_captured = piece_square_board[r2-1][c2]
+                piece_square_board[r2][c2] = id
+                piece_square_board[r1][c1] = -1
+                piece_square_board[r2-1][c2] = -1
+                set_new_coord(bitboard, r2, c2, id)
+        
+        case MOVE.PROMOTION:
+            piece_captured = piece_square_board[r2][c2]
+            piece_square_board[r1][c1] = -1
+            piece_square_board[r2][c2] = id
+            set_new_coord(bitboard, r2, c2, id)
+            set_type(bitboard, id, promotion_type)
+
+    return old_type, piece_captured, old_has_moved
+
+
+def unmake_move(id, r1, c1, r2, c2, piece_square_board, bitboard, king_id, move_type, old_type, piece_captured, old_has_moved):
+    match move_type:
+        case MOVE.NORMAL:
+            
+            piece_square_board[r2][c2] = piece_captured
+            piece_square_board[r1][c1] = id
+            set_new_coord(bitboard, r1, c1, id)
+
+        case MOVE.CASTLE:
+            color = get_color(bitboard[id])
+            if color == Color.WHITE:
+                if c2-c1 > 0:
+                    piece_square_board[r1][c1] = id
+                    piece_square_board[7][7] = piece_square_board[r2][c2-1]
+                    set_new_coord(bitboard, r1, c1, id)
+                    set_new_coord(bitboard, 7, 7, piece_square_board[7][7])  
+                    set_has_moved(bitboard, False, piece_square_board[7][7])                      
+                    piece_square_board[r2][c2] = -1
+                    piece_square_board[r2][c2-1] = -1
+                    
+                else:
+                    piece_square_board[r1][c1] = id
+                    piece_square_board[7][0] = piece_square_board[r2][c2+1]
+                    set_new_coord(bitboard, r1, c1, id)
+                    set_new_coord(bitboard, 7, 0, piece_square_board[7][0])    
+                    set_has_moved(bitboard, False, piece_square_board[7][0])                    
+                    piece_square_board[r2][c2] = -1
+                    piece_square_board[r2][c2+1] = -1
+            else:
+                if c2-c1 > 0:
+                    piece_square_board[r1][c1] = id
+                    piece_square_board[0][7] = piece_square_board[r2][c2-1]
+                    set_new_coord(bitboard, r1, c1, id)
+                    set_new_coord(bitboard, 0, 7, piece_square_board[0][7])      
+                    set_has_moved(bitboard, False, piece_square_board[0][7])                  
+                    piece_square_board[r2][c2] = -1
+                    piece_square_board[r2][c2-1] = -1
+
+                else:
+                    piece_square_board[r1][c1] = id
+                    piece_square_board[0][0] = piece_square_board[r2][c2+1]
+                    set_new_coord(bitboard, r1, c1, id)
+                    set_new_coord(bitboard, 0, 0, piece_square_board[0][0])
+                    set_has_moved(bitboard, False, piece_square_board[0][0])             
+                    piece_square_board[r2][c2] = -1
+                    piece_square_board[r2][c2+1] = -1
+
+
+        case MOVE.EN_PASSANT:
+
+            color = get_color(bitboard[piece_square_board[r2][c2]])
+            if color == Color.WHITE:
+                piece_square_board[r2][c2] = -1
+                piece_square_board[r1][c1] = id
+                piece_square_board[r2+1][c2] = piece_captured
+                set_new_coord(bitboard, r1, c1, id)
+            else:
+                piece_square_board[r2][c2] = -1
+                piece_square_board[r1][c1] = id
+                piece_square_board[r2-1][c2] = piece_captured
+                set_new_coord(bitboard, r1, c1, id)
+
+        case MOVE.PROMOTION:
+            piece_square_board[r1][c1] = id
+            piece_square_board[r2][c2] = piece_captured
+            set_new_coord(bitboard, r1, r1, id)
+            set_type(bitboard, id, old_type)
+
+    set_has_moved(bitboard, old_has_moved, id)
+
+
 def valid_after_scan_for_king_checks_after_move(r1, c1, r2, c2, piece_square_board, bitboard, king_id, move_type):
-    copy_piece_square_board = copy.deepcopy(piece_square_board)
-    copy_bitboard = copy.deepcopy(bitboard)
-
-    id_piece = piece_square_board[r1][c1]
-
-    set_new_coord(copy_bitboard, r2, c2, id_piece)
-
-    king_info = copy_bitboard[king_id]
+    # copy_piece_square_board = copy.deepcopy(piece_square_board)
+    # copy_bitboard = copy.deepcopy(bitboard)
 
     if move_type == MOVE.CASTLE:
         check1 = valid_after_scan_for_king_checks_after_move(r1, c1, r1, c1, piece_square_board, bitboard, king_id, MOVE.NORMAL)
@@ -32,15 +168,27 @@ def valid_after_scan_for_king_checks_after_move(r1, c1, r2, c2, piece_square_boa
         check2 = valid_after_scan_for_king_checks_after_move(r1, c1, r1, c1+sign, piece_square_board, bitboard, king_id, MOVE.NORMAL)
         if not check2:
             return False
+        # check3 = valid_after_scan_for_king_checks_after_move(r1, c1, r1, c1+2*sign, piece_square_board, bitboard, king_id, MOVE.NORMAL)
+        # if not check3:
+        #     return False
         #no need to move the rook because it does not give us any additional meaningful check verification. Only need to check that arriving 
         #square is safe
-        
-    if move_type == MOVE.EN_PASSANT:
-        #sign = 1 if get_color(bitboard[king_id]) == Color.WHITE else -1
-        copy_piece_square_board[r1][c2] = -1
 
-    copy_piece_square_board[r1][c1] = -1
-    copy_piece_square_board[r2][c2] = id_piece
+
+    id_piece = piece_square_board[r1][c1]
+    old_type, piece_captured, old_has_moved = make_move(id_piece, r1, c1, r2, c2, piece_square_board, bitboard, king_id, move_type, Piece.QUEEN)
+
+    #set_new_coord(copy_bitboard, r2, c2, id_piece)
+
+    #king_info = copy_bitboard[king_id]
+    king_info = bitboard[king_id]
+        
+    # if move_type == MOVE.EN_PASSANT:
+    #     #sign = 1 if get_color(bitboard[king_id]) == Color.WHITE else -1
+    #     copy_piece_square_board[r1][c2] = -1
+
+    # copy_piece_square_board[r1][c1] = -1
+    # copy_piece_square_board[r2][c2] = id_piece
 
     king_row = get_row(king_info)
     king_col = get_column(king_info)
@@ -51,15 +199,16 @@ def valid_after_scan_for_king_checks_after_move(r1, c1, r2, c2, piece_square_boa
         row = king_row+x
         col = king_col+y
         if row < 8 and row >= 0 and col >= 0 and col < 8:
-            if copy_piece_square_board[row][col] != -1 and get_color(copy_bitboard[copy_piece_square_board[row][col]]) != get_color(king_info) \
-                and get_type(copy_bitboard[copy_piece_square_board[row][col]]) == Piece.KNIGHT:
-                print("knight attacking")
+            if piece_square_board[row][col] != -1 and get_color(bitboard[piece_square_board[row][col]]) != get_color(king_info) \
+                and get_type(bitboard[piece_square_board[row][col]]) == Piece.KNIGHT:
+                # #print("knight attacking")
+                unmake_move(id_piece, r1, c1, r2, c2, piece_square_board, bitboard, king_id, move_type, old_type, piece_captured, old_has_moved)
                 return False
         
 
     #scan if the rows and columns starting frmo the king are safe
     for i in range(king_row+1, 8):
-        current_id = copy_piece_square_board[i][king_col]
+        current_id = piece_square_board[i][king_col]
         if current_id != -1:
             type_piece = get_type(bitboard[current_id])
             color_piece = get_color(bitboard[current_id])
@@ -67,10 +216,11 @@ def valid_after_scan_for_king_checks_after_move(r1, c1, r2, c2, piece_square_boa
                 break
             else:
                 if type_piece == Piece.QUEEN or type_piece == Piece.ROOK or (i==king_row+1 and type_piece == Piece.KING):
-                    print("lines not safe 1")
+                    ##print("lines not safe 1")
+                    unmake_move(id_piece, r1, c1, r2, c2, piece_square_board, bitboard, king_id, move_type, old_type, piece_captured, old_has_moved)
                     return False
     for i in range(king_row-1, -1, -1):
-        current_id = copy_piece_square_board[i][king_col]
+        current_id = piece_square_board[i][king_col]
         if current_id != -1:
             type_piece = get_type(bitboard[current_id])
             color_piece = get_color(bitboard[current_id])
@@ -78,11 +228,12 @@ def valid_after_scan_for_king_checks_after_move(r1, c1, r2, c2, piece_square_boa
                 break
             else:
                 if type_piece == Piece.QUEEN or type_piece == Piece.ROOK or (i==king_row-1 and type_piece == Piece.KING):
-                    print("lines not safe 2")
+                    ##print("lines not safe 2")
+                    unmake_move(id_piece, r1, c1, r2, c2, piece_square_board, bitboard, king_id, move_type, old_type, piece_captured, old_has_moved)
                     return False
                      
     for j in range(king_col+1, 8):
-        current_id = copy_piece_square_board[king_row][j]
+        current_id = piece_square_board[king_row][j]
         if current_id != -1:
             type_piece = get_type(bitboard[current_id])
             color_piece = get_color(bitboard[current_id])
@@ -90,11 +241,12 @@ def valid_after_scan_for_king_checks_after_move(r1, c1, r2, c2, piece_square_boa
                 break
             else:
                 if type_piece == Piece.QUEEN or type_piece == Piece.ROOK or (j==king_col+1 and type_piece == Piece.KING):
-                    print("lines not safe 3")
+                    #print("lines not safe 3")
+                    unmake_move(id_piece, r1, c1, r2, c2, piece_square_board, bitboard, king_id, move_type, old_type, piece_captured, old_has_moved)
                     return False
                      
     for j in range(king_col-1, -1, -1):
-        current_id = copy_piece_square_board[king_row][j]
+        current_id = piece_square_board[king_row][j]
         if current_id != -1:
             type_piece = get_type(bitboard[current_id])
             color_piece = get_color(bitboard[current_id])
@@ -102,7 +254,8 @@ def valid_after_scan_for_king_checks_after_move(r1, c1, r2, c2, piece_square_boa
                 break
             else:
                 if type_piece == Piece.QUEEN or type_piece == Piece.ROOK or (j==king_col-1 and type_piece == Piece.KING):
-                    print("lines not safe 4")
+                    #print("lines not safe 4")
+                    unmake_move(id_piece, r1, c1, r2, c2, piece_square_board, bitboard, king_id, move_type, old_type, piece_captured, old_has_moved)
                     return False
                      
     #scan to see if the diagonals are safe
@@ -112,7 +265,7 @@ def valid_after_scan_for_king_checks_after_move(r1, c1, r2, c2, piece_square_boa
             row = king_row+x*i
             col = king_col+y*i
             if row >= 0 and row < 8 and col >= 0 and col < 8:
-                current_id = copy_piece_square_board[row][col]
+                current_id = piece_square_board[row][col]
                 if current_id != -1:
                     #check if no bishop or pawn or quenn or king targeting you
                     type_piece = get_type(bitboard[current_id])
@@ -125,9 +278,11 @@ def valid_after_scan_for_king_checks_after_move(r1, c1, r2, c2, piece_square_boa
                         if type_piece == Piece.QUEEN or type_piece == Piece.BISHOP or \
                             (row == king_row+sign_color and abs(king_col-col) == 1 and type_piece == Piece.PAWN) or \
                                 (i == 1 and type_piece == Piece.KING):
-                                    print(f"diagonal not safe for ({x}, {y})")
+                                    #print(f"diagonal not safe for ({x}, {y})")
+                                    unmake_move(id_piece, r1, c1, r2, c2, piece_square_board, bitboard, king_id, move_type, old_type, piece_captured, old_has_moved)
                                     return False
-    
+                        
+    unmake_move(id_piece, r1, c1, r2, c2, piece_square_board, bitboard, king_id, move_type, old_type, piece_captured, old_has_moved)
     return True
 
 
@@ -354,26 +509,18 @@ def move_generation_rook(id, r, c, piece_square_board, bitboard, kings_id, color
     for i in range(r+1, 8):
         if valid_rook_move(r, c, i, c, piece_square_board, bitboard, kings_id, color_turn):
             possible_rook_moves.append((id, i, c, MOVE.NORMAL, None))
-        else:
-            break
 
     for i in range(r-1, -1, -1):
         if valid_rook_move(r, c, i, c, piece_square_board, bitboard, kings_id, color_turn):
             possible_rook_moves.append((id, i, c, MOVE.NORMAL, None))
-        else:
-            break
     
     for j in range(c+1, 8):
         if valid_rook_move(r, c, r, j, piece_square_board, bitboard, kings_id, color_turn):
             possible_rook_moves.append((id, r, j, MOVE.NORMAL, None))
-        else:
-            break
     
     for j in range(c-1, -1, -1):
         if valid_rook_move(r, c, r, j, piece_square_board, bitboard, kings_id, color_turn):
             possible_rook_moves.append((id, r, j, MOVE.NORMAL, None))
-        else:
-            break
 
     return possible_rook_moves
 
@@ -383,26 +530,18 @@ def move_generation_bishop(id, r, c, piece_square_board, bitboard, kings_id, col
     for i in range(1, 8):
         if valid_bishop_move(r, c, r+i, c+i, piece_square_board, bitboard, kings_id, color_turn):
             possible_bishop_move.append((id, r+i, c+i, MOVE.NORMAL, None))
-        else:
-            break
 
     for i in range(1, 8):
         if valid_bishop_move(r, c, r+i, c-i, piece_square_board, bitboard, kings_id, color_turn):
             possible_bishop_move.append((id, r+i, c-i, MOVE.NORMAL, None))
-        else:
-            break
 
     for i in range(1, 8):
         if valid_bishop_move(r, c, r-i, c+i, piece_square_board, bitboard, kings_id, color_turn):
             possible_bishop_move.append((id, r-i, c+i, MOVE.NORMAL, None))
-        else:
-            break
 
     for i in range(1, 8):
         if valid_bishop_move(r, c, r-i, c-i, piece_square_board, bitboard, kings_id, color_turn):
             possible_bishop_move.append((id, r-i, c-i, MOVE.NORMAL, None))
-        else:
-            break
 
     return possible_bishop_move
 
@@ -526,32 +665,32 @@ def move_generation(pieces_list, piece_square_board, bitboard, last_move, kings_
         piece_col = get_column(bitboard[piece])
         match piece_type:
             case Piece.QUEEN: 
-                # print(move_generation_queen(piece, piece_row, piece_col, \
+                # #print(move_generation_queen(piece, piece_row, piece_col, \
                 #                                                          piece_square_board, bitboard, kings_id, color_turn))
                 all_possible_moves = all_possible_moves + move_generation_queen(piece, piece_row, piece_col, \
                                                                          piece_square_board, bitboard, kings_id, color_turn)
             case Piece.KNIGHT: 
-                # print(move_generation_knight(piece, piece_row, piece_col, \
+                # #print(move_generation_knight(piece, piece_row, piece_col, \
                 #                                                          piece_square_board, bitboard, kings_id, color_turn))
                 all_possible_moves = all_possible_moves + move_generation_knight(piece, piece_row, piece_col, \
                                                                          piece_square_board, bitboard, kings_id, color_turn)
             case Piece.BISHOP: 
-                # print(move_generation_bishop(piece, piece_row, piece_col, \
+                # #print(move_generation_bishop(piece, piece_row, piece_col, \
                 #                                                          piece_square_board, bitboard, kings_id, color_turn))
                 all_possible_moves = all_possible_moves + move_generation_bishop(piece, piece_row, piece_col, \
                                                                          piece_square_board, bitboard, kings_id, color_turn)
             case Piece.ROOK: 
-                # print(move_generation_rook(piece, piece_row, piece_col, \
+                # #print(move_generation_rook(piece, piece_row, piece_col, \
                 #                                                          piece_square_board, bitboard, kings_id, color_turn))
                 all_possible_moves = all_possible_moves + move_generation_rook(piece, piece_row, piece_col, \
                                                                          piece_square_board, bitboard, kings_id, color_turn)
             case Piece.PAWN:
-                # print(move_generation_pawn(piece, piece_row, piece_col, \
+                # #print(move_generation_pawn(piece, piece_row, piece_col, \
                 #                                                          piece_square_board, bitboard, kings_id, color_turn, last_move)) 
                 all_possible_moves = all_possible_moves + move_generation_pawn(piece, piece_row, piece_col, \
                                                                          piece_square_board, bitboard, kings_id, color_turn, last_move)
             case Piece.KING: 
-                # print(move_generation_king(piece, piece_row, piece_col, \
+                # #print(move_generation_king(piece, piece_row, piece_col, \
                 #                                                          piece_square_board, bitboard, kings_id, color_turn))
                 all_possible_moves = all_possible_moves + move_generation_king(piece, piece_row, piece_col, \
                                                                          piece_square_board, bitboard, kings_id, color_turn)

@@ -24,6 +24,8 @@ def get_column(x):
     return MASK_3BITS & (x >> SHIFT_COLUMN)
 
 def get_type(x):
+    if MASK_3BITS & (x >> SHIFT_TYPE) > 6:
+        print("what ?")
     return Piece(MASK_3BITS & (x >> SHIFT_TYPE))
 
 def has_moved(x):
@@ -32,6 +34,16 @@ def has_moved(x):
         return True
     else:
         return False
+
+def set_has_moved(bitboard, x, id):
+    to_mod = bitboard[id]
+    color = get_color(to_mod).value
+    row = get_row(to_mod)
+    col = get_column(to_mod)
+    type_ = get_type(to_mod).value
+    moved = 1 if x else 0
+    is_checked_  = int(is_checked(to_mod))
+    bitboard[id] = (color << SHIFT_COLOR) | (row << SHIFT_ROW) | (col << SHIFT_COLUMN) | (type_ << SHIFT_TYPE) | (moved << SHIFT_MOVED) | is_checked_
     
 def is_checked(x):
     y = 1 & x

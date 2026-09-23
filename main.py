@@ -4,6 +4,7 @@ from PIL import Image
 from pieces_classes import *
 from utility import *
 from moves import *
+import evaluation as evaluation
 
 root = Tk()
 root.title("Chess board")
@@ -24,6 +25,7 @@ canvas.grid(column=0, row=0, sticky=(N, W, E, S))
 
 
 col = 0
+inf_ = 1000000000000000000000000000000
 
 board = []
 last_move = [0, 0]
@@ -255,6 +257,7 @@ def button_pressed(event):
                     is_valid = valid_king_move(r1, c1, r2, c2, square_centric_board, bitboard_dict, kings_id, turn)
             
             if is_valid:
+                print("board eval : ", evaluation.evaluate_board(square_centric_board, bitboard_dict))
                 id_arriving_square = square_centric_board[r2][c2]
                 if id_arriving_square != -1:
                     color_to_remove = get_color(bitboard_dict[id_arriving_square])
@@ -263,9 +266,12 @@ def button_pressed(event):
                     else:
                         black_pieces.remove(id_arriving_square)
                     canvas.itemconfigure(id_arriving_square, image="")
+                    rule_50_moves = 0
                 else:
                     if piece_type != Piece.PAWN:
                         rule_50_moves += 1
+                    else:
+                        rule_50_moves = 0
 
                 if (r1+c1)%2 == 0:
                     canvas.itemconfigure(board[r1][c1], fill="antique white")
@@ -279,32 +285,33 @@ def button_pressed(event):
                     freeze_game = True
                     promotion_frame = ttk.Frame(canvas)
                     promotion_frame.grid(column=0, row=0)
-                    if get_color(bitboard_dict[id_piece]) == Color.WHITE:
-                        button_knight = ttk.Button(promotion_frame, image=knight_w, \
-                                                   command=(lambda : promotion_mechanism(id_piece, promotion_frame, Piece.KNIGHT, knight_w)))
-                        button_bishop = ttk.Button(promotion_frame, image=bishop_w, \
-                                                   command=(lambda : promotion_mechanism(id_piece, promotion_frame, Piece.BISHOP, bishop_w)))
-                        button_rook = ttk.Button(promotion_frame, image=rook_w, \
-                                                 command=(lambda : promotion_mechanism(id_piece, promotion_frame, Piece.ROOK, rook_w)))
-                        button_queen = ttk.Button(promotion_frame, image=queen_w, \
-                                                  command=(lambda : promotion_mechanism(id_piece, promotion_frame, Piece.QUEEN, queen_w)))
-                        button_knight.grid(column=0, row=0)
-                        button_bishop.grid(column=1, row=0)
-                        button_rook.grid(column=2, row=0)
-                        button_queen.grid(column=3, row=0)
-                    else:
-                        button_knight = ttk.Button(promotion_frame, image=knight_b, \
-                                                   command=(lambda : promotion_mechanism(id_piece, promotion_frame, Piece.KNIGHT, knight_b)))
-                        button_bishop = ttk.Button(promotion_frame, image=bishop_b, \
-                                                   command=(lambda : promotion_mechanism(id_piece, promotion_frame, Piece.BISHOP, bishop_b)))
-                        button_rook = ttk.Button(promotion_frame, image=rook_b, \
-                                                 command=(lambda : promotion_mechanism(id_piece, promotion_frame, Piece.ROOK, rook_b)))
-                        button_queen = ttk.Button(promotion_frame, image=queen_b, \
-                                                  command=(lambda : promotion_mechanism(id_piece, promotion_frame, Piece.QUEEN, queen_b)))
-                        button_knight.grid(column=0, row=0)
-                        button_bishop.grid(column=1, row=0)
-                        button_rook.grid(column=2, row=0)
-                        button_queen.grid(column=3, row=0)
+                    while freeze_game:
+                        if get_color(bitboard_dict[id_piece]) == Color.WHITE:
+                            button_knight = ttk.Button(promotion_frame, image=knight_w, \
+                                                    command=(lambda : promotion_mechanism(id_piece, promotion_frame, Piece.KNIGHT, knight_w)))
+                            button_bishop = ttk.Button(promotion_frame, image=bishop_w, \
+                                                    command=(lambda : promotion_mechanism(id_piece, promotion_frame, Piece.BISHOP, bishop_w)))
+                            button_rook = ttk.Button(promotion_frame, image=rook_w, \
+                                                    command=(lambda : promotion_mechanism(id_piece, promotion_frame, Piece.ROOK, rook_w)))
+                            button_queen = ttk.Button(promotion_frame, image=queen_w, \
+                                                    command=(lambda : promotion_mechanism(id_piece, promotion_frame, Piece.QUEEN, queen_w)))
+                            button_knight.grid(column=0, row=0)
+                            button_bishop.grid(column=1, row=0)
+                            button_rook.grid(column=2, row=0)
+                            button_queen.grid(column=3, row=0)
+                        else:
+                            button_knight = ttk.Button(promotion_frame, image=knight_b, \
+                                                    command=(lambda : promotion_mechanism(id_piece, promotion_frame, Piece.KNIGHT, knight_b)))
+                            button_bishop = ttk.Button(promotion_frame, image=bishop_b, \
+                                                    command=(lambda : promotion_mechanism(id_piece, promotion_frame, Piece.BISHOP, bishop_b)))
+                            button_rook = ttk.Button(promotion_frame, image=rook_b, \
+                                                    command=(lambda : promotion_mechanism(id_piece, promotion_frame, Piece.ROOK, rook_b)))
+                            button_queen = ttk.Button(promotion_frame, image=queen_b, \
+                                                    command=(lambda : promotion_mechanism(id_piece, promotion_frame, Piece.QUEEN, queen_b)))
+                            button_knight.grid(column=0, row=0)
+                            button_bishop.grid(column=1, row=0)
+                            button_rook.grid(column=2, row=0)
+                            button_queen.grid(column=3, row=0)
 
                 #managing en passant
                 if piece_type == Piece.PAWN and abs(r2-r1) == 1 and abs(c1-c2) == 1 and square_centric_board[r2][c2] == -1:
@@ -347,13 +354,16 @@ def button_pressed(event):
                         end_frame.grid(column=0, row=0)
                         if valid_after_scan_for_king_checks_after_move(black_king_row, black_king_col, black_king_row, black_king_col, \
                                                                     square_centric_board, bitboard_dict, black_king_id, MOVE.NORMAL):
+                            #print("board eval : ", evaluation.evaluate_board(square_centric_board, bitboard_dict))
                             label = ttk.Label(end_frame, text="Draw by stalemate")
                             label.grid(column=0, row=0)
                         else:
+                            #print("board eval : ", evaluation.evaluate_board(square_centric_board, bitboard_dict))
                             label = ttk.Label(end_frame, text="White wins")
                             label.grid(column=0, row=0)
                     else:
                         if rule_50_moves == 100:
+                            #print("board eval : ", evaluation.evaluate_board(square_centric_board, bitboard_dict))
                             freeze_game = True
                             end_frame = ttk.Frame(canvas)
                             end_frame.grid(column=0, row=0)
@@ -361,37 +371,59 @@ def button_pressed(event):
                             label.grid(column=0, row=0)
                         else:
                             if rep_board in dict_positions and dict_positions[rep_board] == 3:
+                                #print("board eval : ", evaluation.evaluate_board(square_centric_board, bitboard_dict))
                                 freeze_game = True
                                 end_frame = ttk.Frame(canvas)
                                 end_frame.grid(column=0, row=0)
                                 label = ttk.Label(end_frame, text="Draw by repetitions")
                                 label.grid(column=0, row=0)
-                    print(move_possible_for_black)
+                    #print("move for black : ", move_possible_for_black)
+
+                    what_to_do = evaluation.alpha_beta(3, -inf_, inf_, False, square_centric_board, bitboard_dict, is_en_passant_possible_for_next_player, \
+                                            dict_positions, rule_50_moves, Color.BLACK, last_move, kings_id, white_pieces, black_pieces)
+                    
+                    print("what to do : ", what_to_do)
+                    if what_to_do[1] != None:
+                        id_to_move = what_to_do[1][0]
+
+                        info_piece = bitboard_dict[id_to_move]
+                        print("move ", \
+                            get_type(bitboard_dict[id_to_move]), \
+                                f"from ({get_row(info_piece)}, {get_column(info_piece)}) to ({what_to_do[1][1]}, {what_to_do[1][2]})")
+                        print("board eval w: ", evaluation.evaluate(square_centric_board, bitboard_dict, dict_positions, \
+                                                                rule_50_moves, turn, last_move, kings_id, white_pieces))
+                        print("board eval b: ", evaluation.evaluate(square_centric_board, bitboard_dict, dict_positions, \
+                                                                    rule_50_moves, turn, last_move, kings_id, black_pieces))
                     turn = Color.BLACK
+                    #print_board_info()
                 else:
                     white_king_id = kings_id[0]
                     white_king_row = get_row(bitboard_dict[white_king_id])
                     white_king_col = get_column(bitboard_dict[white_king_id])
                     move_possible_for_white = move_generation(white_pieces, square_centric_board, bitboard_dict, last_move, kings_id, Color.WHITE)
+                    #print(move_possible_for_white)
                     is_en_passant_possible_for_next_player = False
                     for i in move_possible_for_white:
                         if i[3] == MOVE.EN_PASSANT:
                             is_en_passant_possible_for_next_player = True
                             break
-                    print(move_possible_for_white)
+                    #print(move_possible_for_white)
                     if len(move_possible_for_white) == 0:
                         freeze_game = True
                         end_frame = ttk.Frame(canvas)
                         end_frame.grid(column=0, row=0)
                         if valid_after_scan_for_king_checks_after_move(white_king_row, white_king_col, white_king_row, white_king_col, \
                                                                     square_centric_board, bitboard_dict, white_king_id, MOVE.NORMAL):
+                            #print("board eval : ", evaluation.evaluate_board(square_centric_board, bitboard_dict))
                             label = ttk.Label(end_frame, text="Draw by stalemate")
                             label.grid(column=0, row=0)
                         else:
+                            #print("board eval : ", evaluation.evaluate_board(square_centric_board, bitboard_dict))
                             label = ttk.Label(end_frame, text="Black wins")
                             label.grid(column=0, row=0)
                     else:
                         if rule_50_moves == 100:
+                            #print("board eval : ", evaluation.evaluate_board(square_centric_board, bitboard_dict))
                             freeze_game = True
                             end_frame = ttk.Frame(canvas)
                             end_frame.grid(column=0, row=0)
@@ -399,12 +431,15 @@ def button_pressed(event):
                             label.grid(column=0, row=0)
                         else:
                             if rep_board in dict_positions and dict_positions[rep_board] == 3:
+                                #print("board eval : ", evaluation.evaluate_board(square_centric_board, bitboard_dict))
                                 freeze_game = True
                                 end_frame = ttk.Frame(canvas)
                                 end_frame.grid(column=0, row=0)
                                 label = ttk.Label(end_frame, text="Draw by repetitions")
                                 label.grid(column=0, row=0)
+                    #print("board eval : ", evaluation.evaluate_board(square_centric_board, bitboard_dict))
                     turn = Color.WHITE
+                    #print_board_info()
             else:
                 if (r1+c1)%2 == 0:
                     canvas.itemconfigure(board[r1][c1], fill="antique white")
@@ -412,6 +447,13 @@ def button_pressed(event):
                     canvas.itemconfigure(board[r1][c1], fill="saddle brown")
             
             first_press = True
+
+def print_board_info():
+    for i in range(8):
+        for j in range(8):
+            id = square_centric_board[i][j]
+            if id != -1:
+                print(i, j, " : ", id, get_type(bitboard_dict[id]), get_color(bitboard_dict[id]), has_moved(bitboard_dict[id]))
             
 
 canvas.bind("<Button-1>", button_pressed)
