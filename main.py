@@ -25,7 +25,7 @@ canvas.grid(column=0, row=0, sticky=(N, W, E, S))
 
 
 col = 0
-inf_ = 1000000000000000000000000000000
+inf_ = 1000000000000000000000000000000000
 
 board = []
 last_move = [0, 0]
@@ -142,8 +142,38 @@ def promotion_mechanism(id_piece, promotion_frame, type, new_img):
     global freeze_game
 
     set_type(bitboard_dict, id_piece, type)
-    canvas.itemconfigure(id, image=new_img)
+    canvas.itemconfigure(id_piece, image=new_img)
     promotion_frame.grid_forget()
+
+    
+    if turn == Color.WHITE:
+
+        queen_ctr = 0
+        for x in white_pieces:
+            if get_type(bitboard_dict[x]) == Piece.QUEEN:
+                queen_ctr += 1
+        for x in black_pieces:
+            if get_type(bitboard_dict[x]) == Piece.QUEEN:
+                queen_ctr += 1
+        board_eval = evaluation.evaluate_board(square_centric_board, bitboard_dict, white_pieces, black_pieces)
+
+        what_to_do = evaluation.alpha_beta(3, -inf_, inf_, False, square_centric_board, bitboard_dict, is_en_passant_possible_for_next_player, \
+                dict_positions, rule_50_moves, Color.BLACK, last_move, kings_id, white_pieces, black_pieces, \
+                    board_eval, queen_ctr)
+                            
+        print("what to do : ", what_to_do)
+        if what_to_do[1] != None:
+            id_to_move = what_to_do[1][0]
+        
+            info_piece = bitboard_dict[id_to_move]
+            print("move ", \
+                get_type(bitboard_dict[id_to_move]), \
+                    f"from ({get_row(info_piece)}, {get_column(info_piece)}) to ({what_to_do[1][1]}, {what_to_do[1][2]})")
+            print("board eval w: ", evaluation.evaluate(square_centric_board, bitboard_dict, dict_positions, \
+                    rule_50_moves, turn, last_move, kings_id, white_pieces))
+            print("board eval b: ", evaluation.evaluate(square_centric_board, bitboard_dict, dict_positions, \
+                    rule_50_moves, turn, last_move, kings_id, black_pieces))
+    
     freeze_game = False
 
 def castling_mechanism(r1, c1, r2, c2, piece_square_board, bitboard, canvas):
@@ -257,7 +287,9 @@ def button_pressed(event):
                     is_valid = valid_king_move(r1, c1, r2, c2, square_centric_board, bitboard_dict, kings_id, turn)
             
             if is_valid:
-                print("board eval : ", evaluation.evaluate_board(square_centric_board, bitboard_dict))
+                last_move[0] = bitboard_dict[id_piece]
+                # print(f"moving {get_color(bitboard_dict[id_piece])} {get_type(bitboard_dict[id_piece])} from {(r1, c1)} to {(r2, c2)}")
+                # print("board eval : ", evaluation.evaluate_board(square_centric_board, bitboard_dict))
                 id_arriving_square = square_centric_board[r2][c2]
                 if id_arriving_square != -1:
                     color_to_remove = get_color(bitboard_dict[id_arriving_square])
@@ -285,8 +317,7 @@ def button_pressed(event):
                     freeze_game = True
                     promotion_frame = ttk.Frame(canvas)
                     promotion_frame.grid(column=0, row=0)
-                    while freeze_game:
-                        if get_color(bitboard_dict[id_piece]) == Color.WHITE:
+                    if get_color(bitboard_dict[id_piece]) == Color.WHITE:
                             button_knight = ttk.Button(promotion_frame, image=knight_w, \
                                                     command=(lambda : promotion_mechanism(id_piece, promotion_frame, Piece.KNIGHT, knight_w)))
                             button_bishop = ttk.Button(promotion_frame, image=bishop_w, \
@@ -299,7 +330,7 @@ def button_pressed(event):
                             button_bishop.grid(column=1, row=0)
                             button_rook.grid(column=2, row=0)
                             button_queen.grid(column=3, row=0)
-                        else:
+                    else:
                             button_knight = ttk.Button(promotion_frame, image=knight_b, \
                                                     command=(lambda : promotion_mechanism(id_piece, promotion_frame, Piece.KNIGHT, knight_b)))
                             button_bishop = ttk.Button(promotion_frame, image=bishop_b, \
@@ -324,9 +355,11 @@ def button_pressed(event):
                 canvas.coords(id_piece, 135*c2, 135*r2)
                 square_centric_board[r1][c1] = -1
                 square_centric_board[r2][c2] = id_piece
-                last_move[0] = bitboard_dict[id_piece]
                 set_new_coord(bitboard_dict, r2, c2, id_piece)
                 last_move[1] = bitboard_dict[id_piece]
+
+                # print(f"move done : {get_color(last_move[0])} {get_type(last_move[0])} {(get_row(last_move[0]), get_column(last_move[0]))}")
+                # print(f"to : {get_color(last_move[1])} {get_type(last_move[1])} {(get_row(last_move[1]), get_column(last_move[1]))}")
 
                 rep_board = representation_of_board(square_centric_board, bitboard_dict)
                 if rep_board in dict_positions:
@@ -379,9 +412,30 @@ def button_pressed(event):
                                 label.grid(column=0, row=0)
                     #print("move for black : ", move_possible_for_black)
 
+
+                    turn = Color.BLACK
+                    first_press = True
+
+                    if freeze_game:
+                        return
+
+                    queen_ctr = 0
+                    for x in white_pieces:
+                        if get_type(bitboard_dict[x]) == Piece.QUEEN:
+                            queen_ctr += 1
+                    for x in black_pieces:
+                        if get_type(bitboard_dict[x]) == Piece.QUEEN:
+                            queen_ctr += 1
+                    board_eval = evaluation.evaluate_board(square_centric_board, bitboard_dict, white_pieces, black_pieces)
+
                     what_to_do = evaluation.alpha_beta(3, -inf_, inf_, False, square_centric_board, bitboard_dict, is_en_passant_possible_for_next_player, \
-                                            dict_positions, rule_50_moves, Color.BLACK, last_move, kings_id, white_pieces, black_pieces)
-                    
+                                            dict_positions, rule_50_moves, Color.BLACK, last_move, kings_id, white_pieces, black_pieces, \
+                                                board_eval, queen_ctr)
+
+
+                    # print(f"move done : {get_color(last_move[0])} {get_type(last_move[0])} {(get_row(last_move[0]), get_column(last_move[0]))}")
+                    # print(f"to : {get_color(last_move[1])} {get_type(last_move[1])} {(get_row(last_move[1]), get_column(last_move[1]))}")
+
                     print("what to do : ", what_to_do)
                     if what_to_do[1] != None:
                         id_to_move = what_to_do[1][0]
@@ -390,11 +444,10 @@ def button_pressed(event):
                         print("move ", \
                             get_type(bitboard_dict[id_to_move]), \
                                 f"from ({get_row(info_piece)}, {get_column(info_piece)}) to ({what_to_do[1][1]}, {what_to_do[1][2]})")
-                        print("board eval w: ", evaluation.evaluate(square_centric_board, bitboard_dict, dict_positions, \
-                                                                rule_50_moves, turn, last_move, kings_id, white_pieces))
-                        print("board eval b: ", evaluation.evaluate(square_centric_board, bitboard_dict, dict_positions, \
-                                                                    rule_50_moves, turn, last_move, kings_id, black_pieces))
-                    turn = Color.BLACK
+                        # print("board eval w: ", evaluation.evaluate(square_centric_board, bitboard_dict, dict_positions, \
+                        #                                         rule_50_moves, turn, last_move, kings_id, white_pieces))
+                        # print("board eval b: ", evaluation.evaluate(square_centric_board, bitboard_dict, dict_positions, \
+                        #                                             rule_50_moves, turn, last_move, kings_id, black_pieces))
                     #print_board_info()
                 else:
                     white_king_id = kings_id[0]
@@ -407,7 +460,7 @@ def button_pressed(event):
                         if i[3] == MOVE.EN_PASSANT:
                             is_en_passant_possible_for_next_player = True
                             break
-                    #print(move_possible_for_white)
+                    #print("possible moves for white : ",  move_possible_for_white)
                     if len(move_possible_for_white) == 0:
                         freeze_game = True
                         end_frame = ttk.Frame(canvas)

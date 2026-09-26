@@ -97,16 +97,52 @@ R = 500
 Q = 900
 K = 20000
 
-def evaluate_board(square_piece_board, bitboard):
+def value_of_piece(id, bitboard, queen_ctr):
+    r = get_row(bitboard[id])
+    c = get_column(bitboard[id])
+    t = get_type(bitboard[id])
+    color = get_color(bitboard[id])
+
+    correct_row_to_look = r
+    if color == Color.BLACK:
+        correct_row_to_look = 7-r
+                
+    sign_color = 1 if color == Color.WHITE else -1
+
+    match t:
+        case Piece.PAWN:
+            return (w_pawn[correct_row_to_look][c] + P)*sign_color
+        case Piece.KNIGHT:
+            return (w_knight[correct_row_to_look][c] + N)*sign_color
+        case Piece.BISHOP:
+            return (w_bishop[correct_row_to_look][c] + B)*sign_color
+        case Piece.ROOK:
+            return (w_rook[correct_row_to_look][c] + R)*sign_color
+        case Piece.QUEEN:
+            return (w_queen[correct_row_to_look][c] + Q)*sign_color
+        case Piece.KING:
+            if queen_ctr == 0:
+                return (w_king_endgame[correct_row_to_look][c] + K)*sign_color
+            else:
+                return (w_king_middlegame[correct_row_to_look][c] + K)*sign_color    
+
+
+def evaluate_board(square_piece_board, bitboard, white_pieces, black_pieces):
 
     two_queens_onboard = False
     w_king = []
 
-    for i in range(8):
-        for j in range(8):
-            if square_piece_board[i][j] != -1 and get_type(bitboard[square_piece_board[i][j]]) == Piece.QUEEN:
-                two_queens_onboard = True
-                break
+    # for i in range(8):
+    #     for j in range(8):
+    #         if square_piece_board[i][j] != -1 and get_type(bitboard[square_piece_board[i][j]]) == Piece.QUEEN:
+    #             two_queens_onboard = True
+    #             break
+    for x in white_pieces:
+        if get_type(bitboard[x]) == Piece.QUEEN:
+            two_queens_onboard = True
+    for x in black_pieces:
+        if get_type(bitboard[x]) == Piece.QUEEN:
+            two_queens_onboard = True
 
     if two_queens_onboard:
         w_king = w_king_middlegame
@@ -146,7 +182,7 @@ def evaluate_board(square_piece_board, bitboard):
 
 
 
-def evaluate(square_piece_board, bitboard, dict_positions, rule_50_moves, turn, last_move, kings_id, pieces_list):
+def evaluate(square_piece_board, bitboard, dict_positions, rule_50_moves, turn, last_move, kings_id, pieces_list, len_move_gen, eval):
 
     if rule_50_moves == 100:
         return (0, Game_Status.DRAW)
@@ -165,42 +201,63 @@ def evaluate(square_piece_board, bitboard, dict_positions, rule_50_moves, turn, 
                                                     king_col, square_piece_board, bitboard, kings_id[turn.value], MOVE.NORMAL):
         
         #if none, verify that the color turn can generate moves
-        if len(move_generation(pieces_list, square_piece_board, bitboard, last_move, kings_id, turn)) == 0:
+        if len_move_gen == 0:
             return (0, Game_Status.DRAW)
-        return (evaluate_board(square_piece_board, bitboard), Game_Status.STILL_GOING)
+        return (eval, Game_Status.STILL_GOING)
 
     #we are under check
     else:
         #no moves possible
-        if len(move_generation(pieces_list, square_piece_board, bitboard, last_move, kings_id, turn)) == 0:
+        if len_move_gen == 0:
             if turn == Color.WHITE:
                 return (-1000000000000000000000000000000, Game_Status.BLACK_WINS)
             else:
                 return (1000000000000000000000000000000, Game_Status.WHITE_WINS)
         #can still move
         else:
-            return (evaluate_board(square_piece_board, bitboard), Game_Status.STILL_GOING)
+            return (eval, Game_Status.STILL_GOING)
 
 
 
-import copy
+# def sorting_fct(id, r1, c1, r2, c2, piece_square_board, bitboard, king_id, move_type, promotion_type, \
+#                 dict_positions, rule_50_moves, turn, last_move, kings_id, pieces_list):
+
+#     old_type, piece_captured, old_has_moved = make_move(id, r1, c1, r2, c2, \
+#         piece_square_board, bitboard, king_id, move_type, promotion_type)
+
+#     eval = evaluate(piece_square_board, bitboard, dict_positions, rule_50_moves, turn, last_move, kings_id, pieces_list)
+
+#     unmake_move(id, r1, c1, r2, c2, piece_square_board, bitboard, \
+#         king_id, move_type, old_type, piece_captured, old_has_moved)
+
+#     return eval
+
 
 def alpha_beta(depth, alpha, beta, maximising_player, \
                square_piece_board, bitboard, is_en_passant_possible_for_next_player, dict_positions, \
-             rule_50_moves, turn, last_move, kings_id, white_piece, black_piece):
+             rule_50_moves, turn, last_move, kings_id, white_piece, black_piece, eval, queen_ctr):
+
+    possible_moves = move_generation(white_piece if turn == Color.WHITE else black_piece, square_piece_board, bitboard, last_move, kings_id, turn)
 
     node_evaluation = evaluate(square_piece_board, bitboard, dict_positions, \
-                     rule_50_moves, turn, last_move, kings_id, white_piece if turn == Color.WHITE else black_piece)
+                     rule_50_moves, turn, last_move, kings_id, white_piece if turn == Color.WHITE else black_piece, len(possible_moves), eval)
 
     if depth == 0 or node_evaluation[1] != Game_Status.STILL_GOING:
         return (node_evaluation, None)
 
-
+    score_eval = node_evaluation[0]
     game_status_ = Game_Status.STILL_GOING
     if turn == Color.WHITE:
-        value = -1000000000000000000000000000000
+        value = -1000000000000000000000000000000000
         move_to_make = None
-        possible_moves = move_generation(white_piece, square_piece_board, bitboard, last_move, kings_id, turn)
+        
+        #possible_moves = move_generation(white_piece, square_piece_board, bitboard, last_move, kings_id, turn)
+        
+        #  possible_moves.sort(key= lambda move: sorting_fct(move[0], get_row(bitboard[move[0]]), get_column(bitboard[move[0]]), \
+        #     move[1], move[2], square_piece_board, bitboard, kings_id[Color.WHITE.value], move[3], move[4], \
+        #         dict_positions, rule_50_moves, turn, last_move, kings_id, \
+        #             white_piece), reverse=True)
+
         # print("WHITE : ", possible_moves)
         for move in possible_moves:
             old_row = get_row(bitboard[move[0]])
@@ -216,10 +273,12 @@ def alpha_beta(depth, alpha, beta, maximising_player, \
             info_on_piece = None
 
             old_en_passant = is_en_passant_possible_for_next_player
-            old_last_moves = copy.deepcopy(last_move)
+            new_last_moves = [0, 0]
             old_rule_50 = rule_50_moves
 
-            last_move[0] = bitboard[move[0]]
+            new_last_moves[0] = bitboard[move[0]]
+
+            score_eval -= value_of_piece(id_piece, bitboard, queen_ctr)
 
             if get_type(bitboard[move[0]]) == Piece.PAWN and abs(old_row - new_row) == 2:
                 if new_col - 1 >= 0 and square_piece_board[new_row][new_col-1] != -1 \
@@ -231,6 +290,11 @@ def alpha_beta(depth, alpha, beta, maximising_player, \
 
             old_type, piece_captured, old_has_moved = make_move(id_piece, old_row, old_col, new_row, new_col, \
                       square_piece_board, bitboard, kings_id[Color.WHITE.value], type_of_move, type_promotion)
+
+            if piece_captured != -1 and get_type(bitboard[piece_captured]) == Piece.QUEEN:
+                queen_ctr -= 1
+
+            score_eval += value_of_piece(id_piece, bitboard, queen_ctr)
 
             if old_type == Piece.PAWN:
                 rule_50_moves = 0
@@ -247,17 +311,23 @@ def alpha_beta(depth, alpha, beta, maximising_player, \
                     dict_positions[board_rep] = 1
 
 
-            last_move[1] = bitboard[move[0]]
+            new_last_moves[1] = bitboard[move[0]]
             #call recursion
             evaluation_child = alpha_beta(depth-1, alpha, beta, maximising_player ^ True, \
                square_piece_board, bitboard, is_en_passant_possible_for_next_player, dict_positions, \
-             rule_50_moves, Color.BLACK, last_move, kings_id, white_piece, black_piece)
+             rule_50_moves, Color.BLACK, new_last_moves, kings_id, white_piece, black_piece, score_eval, queen_ctr)
 
 
+            score_eval -= value_of_piece(id_piece, bitboard, queen_ctr)
 
             #unmake move
             unmake_move(id_piece, old_row, old_col, new_row, new_col, square_piece_board, bitboard, \
                         kings_id[Color.WHITE.value], type_of_move, old_type, piece_captured, old_has_moved)
+
+            if piece_captured != -1 and get_type(bitboard[piece_captured]) == Piece.QUEEN:
+                queen_ctr += 1
+
+            score_eval += value_of_piece(id_piece, bitboard, queen_ctr)
 
             if piece_captured != -1:
                 black_piece.append(piece_captured)
@@ -265,7 +335,7 @@ def alpha_beta(depth, alpha, beta, maximising_player, \
             if board_rep in dict_positions:
                 dict_positions[board_rep] = max(0, dict_positions[board_rep] - 1)
 
-            last_move = copy.deepcopy(old_last_moves)
+            
             rule_50_moves = old_rule_50
             is_en_passant_possible_for_next_player = old_en_passant
 
@@ -284,9 +354,15 @@ def alpha_beta(depth, alpha, beta, maximising_player, \
         return ((value, game_status_), move_to_make)
     else:
         #same but for blacks
-        value = 1000000000000000000000000000000
+        value = 1000000000000000000000000000000000
         move_to_make = None
-        possible_moves = move_generation(black_piece, square_piece_board, bitboard, last_move, kings_id, turn)
+        #possible_moves = move_generation(black_piece, square_piece_board, bitboard, last_move, kings_id, turn)
+
+        # possible_moves.sort(key= lambda move: sorting_fct(move[0], get_row(bitboard[move[0]]), get_column(bitboard[move[0]]), \
+        #             move[1], move[2], square_piece_board, bitboard, kings_id[Color.BLACK.value], move[3], move[4], \
+        #                 dict_positions, rule_50_moves, turn, last_move, kings_id, \
+        #                     black_piece))
+
         for move in possible_moves:
             old_row = get_row(bitboard[move[0]])
             old_col = get_column(bitboard[move[0]])
@@ -302,13 +378,16 @@ def alpha_beta(depth, alpha, beta, maximising_player, \
             info_on_piece = None
 
             old_en_passant = is_en_passant_possible_for_next_player
-            old_last_moves = copy.deepcopy(last_move)
+            new_last_moves = [0, 0]
             old_rule_50 = rule_50_moves
 
-            last_move[0] = bitboard[move[0]]
-            #make move
-            
+            new_last_moves[0] = bitboard[id_piece]
 
+
+            score_eval -= value_of_piece(id_piece, bitboard, queen_ctr)
+            
+            
+            #make move
             if get_type(bitboard[move[0]]) == Piece.PAWN and abs(old_row - new_row) == 2:
                 if new_col - 1 >= 0 and square_piece_board[new_row][new_col-1] != -1 \
                     and get_type(bitboard[square_piece_board[new_row][new_col-1]]) == Piece.PAWN:
@@ -317,8 +396,16 @@ def alpha_beta(depth, alpha, beta, maximising_player, \
                     and get_type(bitboard[square_piece_board[new_row][new_col+1]]) == Piece.PAWN:
                         is_en_passant_possible_for_next_player = True
 
+            
+
             old_type, piece_captured, old_has_moved = make_move(id_piece, old_row, old_col, new_row, new_col, \
-                      square_piece_board, bitboard, kings_id[Color.BLACK.value], type_of_move, type_promotion)      
+                      square_piece_board, bitboard, kings_id[Color.BLACK.value], type_of_move, type_promotion)     
+
+            if piece_captured != -1 and get_type(bitboard[piece_captured]) == Piece.QUEEN:
+                queen_ctr -= 1
+
+            score_eval += value_of_piece(id_piece, bitboard, queen_ctr)
+ 
 
             if old_type == Piece.PAWN:
                 rule_50_moves = 0
@@ -334,17 +421,22 @@ def alpha_beta(depth, alpha, beta, maximising_player, \
                     dict_positions[board_rep] = 1
 
 
-            last_move[1] = bitboard[move[0]]
+            new_last_moves[1] = bitboard[move[0]]
             #call recursion
             evaluation_child = alpha_beta(depth-1, alpha, beta, maximising_player ^ True, \
                square_piece_board, bitboard, is_en_passant_possible_for_next_player, dict_positions, \
-             rule_50_moves, Color.WHITE, last_move, kings_id, white_piece, black_piece)
+             rule_50_moves, Color.WHITE, new_last_moves, kings_id, white_piece, black_piece, score_eval, queen_ctr)
 
-
+            score_eval -= value_of_piece(id_piece, bitboard, queen_ctr)
 
             #unmake move
             unmake_move(id_piece, old_row, old_col, new_row, new_col, square_piece_board, bitboard, \
                         kings_id[Color.BLACK.value], type_of_move, old_type, piece_captured, old_has_moved)
+
+            if piece_captured != -1 and get_type(bitboard[piece_captured]) == Piece.QUEEN:
+                queen_ctr += 1
+
+            score_eval += value_of_piece(id_piece, bitboard, queen_ctr)
 
             if piece_captured != -1:
                 white_piece.append(piece_captured)
@@ -352,7 +444,7 @@ def alpha_beta(depth, alpha, beta, maximising_player, \
             if board_rep in dict_positions:
                 dict_positions[board_rep] = max(0, dict_positions[board_rep] - 1)
 
-            last_move = copy.deepcopy(old_last_moves)
+            
             rule_50_moves = old_rule_50
             is_en_passant_possible_for_next_player = old_en_passant
 

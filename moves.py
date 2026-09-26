@@ -300,7 +300,7 @@ def valid_rook_move(r1, c1, r2, c2, piece_square_board, bitboard, kings_id, colo
         for i in range(r1+step, r2, step):
             if piece_square_board[i][c1] != -1:
                 return False
-        color_current = get_color(bitboard[piece_square_board[r1][c1]])
+        color_current = color_turn
         id_arriving_piece = piece_square_board[r2][c2]
         if id_arriving_piece != -1:
             info_arriving_piece = bitboard[id_arriving_piece]
@@ -315,7 +315,7 @@ def valid_rook_move(r1, c1, r2, c2, piece_square_board, bitboard, kings_id, colo
         for j in range(c1+step, c2, step):
             if piece_square_board[r1][j] != -1:
                 return False
-        color_current = get_color(bitboard[piece_square_board[r1][c1]])
+        color_current = color_turn
         id_arriving_piece = piece_square_board[r2][c2]
         if id_arriving_piece != -1:
             info_arriving_piece = bitboard[id_arriving_piece]
@@ -347,7 +347,7 @@ def valid_bishop_move(r1, c1, r2, c2, piece_square_board, bitboard, kings_id, co
         if piece_square_board[r1 + i*row_sign][c1 + i*col_sign] != -1:
             return False
         
-    color_current = get_color(bitboard[piece_square_board[r1][c1]])
+    color_current = color_turn
     id_arriving_piece = piece_square_board[r2][c2]
     if id_arriving_piece != -1:
         info_arriving_piece = bitboard[id_arriving_piece]
@@ -506,42 +506,161 @@ def valid_king_move(r1, c1, r2, c2, piece_square_board, bitboard, kings_id, colo
 
 def move_generation_rook(id, r, c, piece_square_board, bitboard, kings_id, color_turn):
     possible_rook_moves = []
-    for i in range(r+1, 8):
-        if valid_rook_move(r, c, i, c, piece_square_board, bitboard, kings_id, color_turn):
+    blocked = False
+    ok = valid_rook_move(r, c, r+1, c, piece_square_board, bitboard, kings_id, color_turn)
+    if ok:
+        for i in range(r+1, 8):
+            if blocked:
+                 break
+            if not check_bounds(i, c) or (piece_square_board[i][c] != -1 and get_color(bitboard[piece_square_board[i][c]]) == color_turn):
+                 break
             possible_rook_moves.append((id, i, c, MOVE.NORMAL, None))
+            if piece_square_board[i][c] != -1:
+                 blocked = True
 
-    for i in range(r-1, -1, -1):
-        if valid_rook_move(r, c, i, c, piece_square_board, bitboard, kings_id, color_turn):
+    # for i in range(r+1, 8):
+    #     if blocked:
+    #         break
+    #     if not check_bounds(i, c) or (piece_square_board[i][c] != -1 and get_color(bitboard[piece_square_board[i][c]]) == color_turn):
+    #         break
+    #     if valid_rook_move(r, c, i, c, piece_square_board, bitboard, kings_id, color_turn):
+    #         possible_rook_moves.append((id, i, c, MOVE.NORMAL, None))
+            
+
+    blocked = False
+    ok = valid_rook_move(r, c, r-1, c, piece_square_board, bitboard, kings_id, color_turn)
+    if ok:
+         for i in range(r-1, -1, -1):
+            if blocked:
+                 break
+            if not check_bounds(i, c) or (piece_square_board[i][c] != -1 and get_color(bitboard[piece_square_board[i][c]]) == color_turn):
+                 break
             possible_rook_moves.append((id, i, c, MOVE.NORMAL, None))
+            if piece_square_board[i][c] != -1:
+                 blocked = True              
+
+    # for i in range(r-1, -1, -1):
+    #     if not check_bounds(i, c) or (piece_square_board[i][c] != -1 and get_color(bitboard[piece_square_board[i][c]]) == color_turn):
+    #                         break
+    #     if valid_rook_move(r, c, i, c, piece_square_board, bitboard, kings_id, color_turn):
+    #         possible_rook_moves.append((id, i, c, MOVE.NORMAL, None))
     
-    for j in range(c+1, 8):
-        if valid_rook_move(r, c, r, j, piece_square_board, bitboard, kings_id, color_turn):
+
+    blocked = False
+    ok = valid_rook_move(r, c, r, c+1, piece_square_board, bitboard, kings_id, color_turn)
+    if ok:
+         for j in range(c+1, 8):
+            if blocked:
+                 break
+            if not check_bounds(r, j) or (piece_square_board[r][j] != -1 and get_color(bitboard[piece_square_board[r][j]]) == color_turn):
+                 break
             possible_rook_moves.append((id, r, j, MOVE.NORMAL, None))
+            if piece_square_board[r][j] != -1:
+                 blocked = True       
+
+    # for j in range(c+1, 8):
+    #     if not check_bounds(r, j) or (piece_square_board[r][j] != -1 and get_color(bitboard[piece_square_board[r][j]]) == color_turn):
+    #                         break
+    #     if valid_rook_move(r, c, r, j, piece_square_board, bitboard, kings_id, color_turn):
+    #         possible_rook_moves.append((id, r, j, MOVE.NORMAL, None))
     
-    for j in range(c-1, -1, -1):
-        if valid_rook_move(r, c, r, j, piece_square_board, bitboard, kings_id, color_turn):
+
+    blocked = False
+    ok = valid_rook_move(r, c, r, c-1, piece_square_board, bitboard, kings_id, color_turn)
+    if ok:
+         for j in range(c-1, -1, -1):
+            if blocked:
+                 break
+            if not check_bounds(r, j) or (piece_square_board[r][j] != -1 and get_color(bitboard[piece_square_board[r][j]]) == color_turn):
+                 break
             possible_rook_moves.append((id, r, j, MOVE.NORMAL, None))
+            if piece_square_board[r][j] != -1:
+                 blocked = True       
+
+
+    # for j in range(c-1, -1, -1):
+    #     if not check_bounds(r, j) or (piece_square_board[r][j] != -1 and get_color(bitboard[piece_square_board[r][j]]) == color_turn):
+    #                                 break
+    #     if valid_rook_move(r, c, r, j, piece_square_board, bitboard, kings_id, color_turn):
+    #         possible_rook_moves.append((id, r, j, MOVE.NORMAL, None))
 
     return possible_rook_moves
 
 def move_generation_bishop(id, r, c, piece_square_board, bitboard, kings_id, color_turn):
     possible_bishop_move = []
 
-    for i in range(1, 8):
-        if valid_bishop_move(r, c, r+i, c+i, piece_square_board, bitboard, kings_id, color_turn):
+    blocked = False
+    ok = valid_bishop_move(r, c, r+1, c+1, piece_square_board, bitboard, kings_id, color_turn)
+    if ok:
+        for i in range(1, 8):
+            if blocked:
+                break
+            if not check_bounds(r+i, c+i) or (piece_square_board[r+i][c+i] != -1 and get_color(bitboard[piece_square_board[r+i][c+i]]) == color_turn):
+                break
             possible_bishop_move.append((id, r+i, c+i, MOVE.NORMAL, None))
+            if piece_square_board[r+i][c+i] != -1:
+                blocked = True
 
-    for i in range(1, 8):
-        if valid_bishop_move(r, c, r+i, c-i, piece_square_board, bitboard, kings_id, color_turn):
+
+    # for i in range(1, 8):
+    #     if not check_bounds(r+i, c+i) or (piece_square_board[r+i][c+i] != -1 and get_color(bitboard[piece_square_board[r+i][c+i]]) == color_turn):
+    #         break
+    #     if valid_bishop_move(r, c, r+i, c+i, piece_square_board, bitboard, kings_id, color_turn):
+    #         possible_bishop_move.append((id, r+i, c+i, MOVE.NORMAL, None))
+
+    blocked = False
+    ok = valid_bishop_move(r, c, r+1, c-1, piece_square_board, bitboard, kings_id, color_turn)
+    if ok:
+        for i in range(1, 8):
+            if blocked:
+                break
+            if not check_bounds(r+i, c-i) or (piece_square_board[r+i][c-i] != -1 and get_color(bitboard[piece_square_board[r+i][c-i]]) == color_turn):                
+                break
             possible_bishop_move.append((id, r+i, c-i, MOVE.NORMAL, None))
+            if piece_square_board[r+i][c-i] != -1:
+                blocked = True
 
-    for i in range(1, 8):
-        if valid_bishop_move(r, c, r-i, c+i, piece_square_board, bitboard, kings_id, color_turn):
+    # for i in range(1, 8):
+    #     if not check_bounds(r+i, c-i) or (piece_square_board[r+i][c-i] != -1 and get_color(bitboard[piece_square_board[r+i][c-i]]) == color_turn):
+    #                 break
+    #     if valid_bishop_move(r, c, r+i, c-i, piece_square_board, bitboard, kings_id, color_turn):
+    #         possible_bishop_move.append((id, r+i, c-i, MOVE.NORMAL, None))
+
+    blocked = False
+    ok = valid_bishop_move(r, c, r-1, c+1, piece_square_board, bitboard, kings_id, color_turn)
+    if ok:
+        for i in range(1, 8):
+            if blocked:
+                break
+            if not check_bounds(r-i, c+i) or (piece_square_board[r-i][c+i] != -1 and get_color(bitboard[piece_square_board[r-i][c+i]]) == color_turn):                
+                break
             possible_bishop_move.append((id, r-i, c+i, MOVE.NORMAL, None))
+            if piece_square_board[r-i][c+i] != -1:
+                blocked = True
 
-    for i in range(1, 8):
-        if valid_bishop_move(r, c, r-i, c-i, piece_square_board, bitboard, kings_id, color_turn):
+    # for i in range(1, 8):
+    #     if not check_bounds(r-i, c+i) or (piece_square_board[r-i][c+i] != -1 and get_color(bitboard[piece_square_board[r-i][c+i]]) == color_turn):
+    #                 break
+    #     if valid_bishop_move(r, c, r-i, c+i, piece_square_board, bitboard, kings_id, color_turn):
+    #         possible_bishop_move.append((id, r-i, c+i, MOVE.NORMAL, None))
+
+    blocked = False
+    ok = valid_bishop_move(r, c, r-1, c-1, piece_square_board, bitboard, kings_id, color_turn)
+    if ok:
+        for i in range(1, 8):
+            if blocked:
+                break
+            if not check_bounds(r-i, c-i) or (piece_square_board[r-i][c-i] != -1 and get_color(bitboard[piece_square_board[r-i][c-i]]) == color_turn):                
+                break
             possible_bishop_move.append((id, r-i, c-i, MOVE.NORMAL, None))
+            if piece_square_board[r-i][c-i] != -1:
+                blocked = True
+
+    # for i in range(1, 8):
+    #     if not check_bounds(r-i, c-i) or (piece_square_board[r-i][c-i] != -1 and get_color(bitboard[piece_square_board[r-i][c-i]]) == color_turn):
+    #                 break
+    #     if valid_bishop_move(r, c, r-i, c-i, piece_square_board, bitboard, kings_id, color_turn):
+    #         possible_bishop_move.append((id, r-i, c-i, MOVE.NORMAL, None))
 
     return possible_bishop_move
 
