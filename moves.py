@@ -1,6 +1,7 @@
 import math
 from utility import *
 import copy
+import datetime as dt
 
 from enum import Enum
 
@@ -13,6 +14,8 @@ class MOVE(Enum):
 def check_bounds(r, c):
     return r >= 0 and r < 8 and c >= 0 and c < 8
 
+
+time_spent = dt.datetime.now() - dt.datetime.now()
 
 def make_move(id, r1, c1, r2, c2, piece_square_board, bitboard, king_id, move_type, promotion_type):
 
@@ -155,18 +158,26 @@ def unmake_move(id, r1, c1, r2, c2, piece_square_board, bitboard, king_id, move_
 
     set_has_moved(bitboard, old_has_moved, id)
 
+import datetime as dt
 
 def valid_after_scan_for_king_checks_after_move(r1, c1, r2, c2, piece_square_board, bitboard, king_id, move_type):
+    global time_spent
+    start = dt.datetime.now()
+
     # copy_piece_square_board = copy.deepcopy(piece_square_board)
     # copy_bitboard = copy.deepcopy(bitboard)
 
     if move_type == MOVE.CASTLE:
         check1 = valid_after_scan_for_king_checks_after_move(r1, c1, r1, c1, piece_square_board, bitboard, king_id, MOVE.NORMAL)
         if not check1:
+            end = dt.datetime.now()
+            time_spent += (end-start)
             return False
         sign = (c2-c1)//abs(c2-c1)
         check2 = valid_after_scan_for_king_checks_after_move(r1, c1, r1, c1+sign, piece_square_board, bitboard, king_id, MOVE.NORMAL)
         if not check2:
+            end = dt.datetime.now()
+            time_spent += (end-start)
             return False
         # check3 = valid_after_scan_for_king_checks_after_move(r1, c1, r1, c1+2*sign, piece_square_board, bitboard, king_id, MOVE.NORMAL)
         # if not check3:
@@ -203,6 +214,8 @@ def valid_after_scan_for_king_checks_after_move(r1, c1, r2, c2, piece_square_boa
                 and get_type(bitboard[piece_square_board[row][col]]) == Piece.KNIGHT:
                 # #print("knight attacking")
                 unmake_move(id_piece, r1, c1, r2, c2, piece_square_board, bitboard, king_id, move_type, old_type, piece_captured, old_has_moved)
+                end = dt.datetime.now()
+                time_spent += (end-start)
                 return False
         
 
@@ -218,6 +231,9 @@ def valid_after_scan_for_king_checks_after_move(r1, c1, r2, c2, piece_square_boa
                 if type_piece == Piece.QUEEN or type_piece == Piece.ROOK or (i==king_row+1 and type_piece == Piece.KING):
                     ##print("lines not safe 1")
                     unmake_move(id_piece, r1, c1, r2, c2, piece_square_board, bitboard, king_id, move_type, old_type, piece_captured, old_has_moved)
+                    
+                    end = dt.datetime.now()
+                    time_spent += (end-start)
                     return False
     for i in range(king_row-1, -1, -1):
         current_id = piece_square_board[i][king_col]
@@ -230,6 +246,9 @@ def valid_after_scan_for_king_checks_after_move(r1, c1, r2, c2, piece_square_boa
                 if type_piece == Piece.QUEEN or type_piece == Piece.ROOK or (i==king_row-1 and type_piece == Piece.KING):
                     ##print("lines not safe 2")
                     unmake_move(id_piece, r1, c1, r2, c2, piece_square_board, bitboard, king_id, move_type, old_type, piece_captured, old_has_moved)
+                    end = dt.datetime.now()
+                    time_spent += (end-start)
+                    
                     return False
                      
     for j in range(king_col+1, 8):
@@ -243,6 +262,9 @@ def valid_after_scan_for_king_checks_after_move(r1, c1, r2, c2, piece_square_boa
                 if type_piece == Piece.QUEEN or type_piece == Piece.ROOK or (j==king_col+1 and type_piece == Piece.KING):
                     #print("lines not safe 3")
                     unmake_move(id_piece, r1, c1, r2, c2, piece_square_board, bitboard, king_id, move_type, old_type, piece_captured, old_has_moved)
+                    
+                    end = dt.datetime.now()
+                    time_spent += (end-start)
                     return False
                      
     for j in range(king_col-1, -1, -1):
@@ -256,6 +278,9 @@ def valid_after_scan_for_king_checks_after_move(r1, c1, r2, c2, piece_square_boa
                 if type_piece == Piece.QUEEN or type_piece == Piece.ROOK or (j==king_col-1 and type_piece == Piece.KING):
                     #print("lines not safe 4")
                     unmake_move(id_piece, r1, c1, r2, c2, piece_square_board, bitboard, king_id, move_type, old_type, piece_captured, old_has_moved)
+                    
+                    end = dt.datetime.now()
+                    time_spent += (end-start)
                     return False
                      
     #scan to see if the diagonals are safe
@@ -280,9 +305,14 @@ def valid_after_scan_for_king_checks_after_move(r1, c1, r2, c2, piece_square_boa
                                 (i == 1 and type_piece == Piece.KING):
                                     #print(f"diagonal not safe for ({x}, {y})")
                                     unmake_move(id_piece, r1, c1, r2, c2, piece_square_board, bitboard, king_id, move_type, old_type, piece_captured, old_has_moved)
+                                    end = dt.datetime.now()
+                                    time_spent += (end-start)
                                     return False
                         
     unmake_move(id_piece, r1, c1, r2, c2, piece_square_board, bitboard, king_id, move_type, old_type, piece_captured, old_has_moved)
+    
+    end = dt.datetime.now()
+    time_spent += (end-start)
     return True
 
 

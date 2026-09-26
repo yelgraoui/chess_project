@@ -288,13 +288,34 @@ def alpha_beta(depth, alpha, beta, maximising_player, \
                     and get_type(bitboard[square_piece_board[new_row][new_col+1]]) == Piece.PAWN:
                         is_en_passant_possible_for_next_player = True
 
+            if type_of_move == MOVE.CASTLE:
+                if old_col-new_col > 0:
+                    #castle to the left
+                    score_eval -= value_of_piece(square_piece_board[7][0], bitboard, queen_ctr)
+                else:
+                    #castle to the right
+                    score_eval -= value_of_piece(square_piece_board[7][7], bitboard, queen_ctr)
+
             old_type, piece_captured, old_has_moved = make_move(id_piece, old_row, old_col, new_row, new_col, \
                       square_piece_board, bitboard, kings_id[Color.WHITE.value], type_of_move, type_promotion)
 
-            if piece_captured != -1 and get_type(bitboard[piece_captured]) == Piece.QUEEN:
-                queen_ctr -= 1
+            if piece_captured != -1:
+                score_eval -= value_of_piece(piece_captured, bitboard, queen_ctr)
+                if get_type(bitboard[piece_captured]) == Piece.QUEEN:
+                    queen_ctr -= 1
+
+            if type_promotion == Piece.QUEEN:
+                queen_ctr += 1
 
             score_eval += value_of_piece(id_piece, bitboard, queen_ctr)
+            if type_of_move == MOVE.CASTLE:
+                if old_col-new_col > 0:
+                    #castle to the left
+                    score_eval += value_of_piece(square_piece_board[7][3], bitboard, queen_ctr)
+                else:
+                    #castle to the right
+                    score_eval += value_of_piece(square_piece_board[7][5], bitboard, queen_ctr)
+                    
 
             if old_type == Piece.PAWN:
                 rule_50_moves = 0
@@ -319,14 +340,35 @@ def alpha_beta(depth, alpha, beta, maximising_player, \
 
 
             score_eval -= value_of_piece(id_piece, bitboard, queen_ctr)
+            if type_of_move == MOVE.CASTLE:
+                if old_col-new_col > 0:
+                    #castle to the left
+                    score_eval -= value_of_piece(square_piece_board[7][3], bitboard, queen_ctr)
+                else:
+                    #castle to the right
+                    score_eval -= value_of_piece(square_piece_board[7][5], bitboard, queen_ctr)
+
+            if piece_captured != -1:
+                score_eval += value_of_piece(piece_captured, bitboard, queen_ctr)
+                if get_type(bitboard[piece_captured]) == Piece.QUEEN:
+                    queen_ctr += 1
+
+            if type_promotion == Piece.QUEEN:
+                queen_ctr -= 1
 
             #unmake move
             unmake_move(id_piece, old_row, old_col, new_row, new_col, square_piece_board, bitboard, \
                         kings_id[Color.WHITE.value], type_of_move, old_type, piece_captured, old_has_moved)
 
-            if piece_captured != -1 and get_type(bitboard[piece_captured]) == Piece.QUEEN:
-                queen_ctr += 1
-
+            
+            if type_of_move == MOVE.CASTLE:
+                if old_col-new_col > 0:
+                    #castle to the left
+                    score_eval += value_of_piece(square_piece_board[7][0], bitboard, queen_ctr)
+                else:
+                    #castle to the right
+                    score_eval += value_of_piece(square_piece_board[7][7], bitboard, queen_ctr)
+            
             score_eval += value_of_piece(id_piece, bitboard, queen_ctr)
 
             if piece_captured != -1:
@@ -396,15 +438,33 @@ def alpha_beta(depth, alpha, beta, maximising_player, \
                     and get_type(bitboard[square_piece_board[new_row][new_col+1]]) == Piece.PAWN:
                         is_en_passant_possible_for_next_player = True
 
-            
+            if type_of_move == MOVE.CASTLE:
+                if old_col-new_col > 0:
+                    #castle to the left
+                    score_eval -= value_of_piece(square_piece_board[0][0], bitboard, queen_ctr)
+                else:
+                    #castle to the right
+                    score_eval -= value_of_piece(square_piece_board[0][7], bitboard, queen_ctr)            
 
             old_type, piece_captured, old_has_moved = make_move(id_piece, old_row, old_col, new_row, new_col, \
                       square_piece_board, bitboard, kings_id[Color.BLACK.value], type_of_move, type_promotion)     
 
-            if piece_captured != -1 and get_type(bitboard[piece_captured]) == Piece.QUEEN:
-                queen_ctr -= 1
+            if piece_captured != -1:
+                score_eval -= value_of_piece(piece_captured, bitboard, queen_ctr)
+                if get_type(bitboard[piece_captured]) == Piece.QUEEN:
+                    queen_ctr -= 1
+
+            if type_promotion == Piece.QUEEN:
+                queen_ctr += 1
 
             score_eval += value_of_piece(id_piece, bitboard, queen_ctr)
+            if type_of_move == MOVE.CASTLE:
+                if old_col-new_col > 0:
+                    #castle to the left
+                    score_eval += value_of_piece(square_piece_board[0][3], bitboard, queen_ctr)
+                else:
+                    #castle to the right
+                    score_eval += value_of_piece(square_piece_board[0][5], bitboard, queen_ctr)
  
 
             if old_type == Piece.PAWN:
@@ -428,13 +488,33 @@ def alpha_beta(depth, alpha, beta, maximising_player, \
              rule_50_moves, Color.WHITE, new_last_moves, kings_id, white_piece, black_piece, score_eval, queen_ctr)
 
             score_eval -= value_of_piece(id_piece, bitboard, queen_ctr)
+            if type_of_move == MOVE.CASTLE:
+                if old_col-new_col > 0:
+                    #castle to the left
+                    score_eval -= value_of_piece(square_piece_board[0][3], bitboard, queen_ctr)
+                else:
+                    #castle to the right
+                    score_eval -= value_of_piece(square_piece_board[0][5], bitboard, queen_ctr)
+
+            if piece_captured != -1:
+                score_eval += value_of_piece(piece_captured, bitboard, queen_ctr)
+                if get_type(bitboard[piece_captured]) == Piece.QUEEN:
+                    queen_ctr += 1
+
+            if type_promotion == Piece.QUEEN:
+                queen_ctr -= 1
 
             #unmake move
             unmake_move(id_piece, old_row, old_col, new_row, new_col, square_piece_board, bitboard, \
                         kings_id[Color.BLACK.value], type_of_move, old_type, piece_captured, old_has_moved)
 
-            if piece_captured != -1 and get_type(bitboard[piece_captured]) == Piece.QUEEN:
-                queen_ctr += 1
+            if type_of_move == MOVE.CASTLE:
+                if old_col-new_col > 0:
+                    #castle to the left
+                    score_eval += value_of_piece(square_piece_board[0][0], bitboard, queen_ctr)
+                else:
+                    #castle to the right
+                    score_eval += value_of_piece(square_piece_board[0][7], bitboard, queen_ctr)            
 
             score_eval += value_of_piece(id_piece, bitboard, queen_ctr)
 

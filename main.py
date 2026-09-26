@@ -3,8 +3,9 @@ from tkinter import ttk
 from PIL import Image
 from pieces_classes import *
 from utility import *
-from moves import *
+import moves
 import evaluation as evaluation
+import datetime as dt
 
 root = Tk()
 root.title("Chess board")
@@ -48,6 +49,7 @@ for j in range(0, 1081-135, 135):
         col ^= 1
         
     col ^= 1
+
 
 
 king_b = PhotoImage(file="pieces_images/black_king.svg")
@@ -243,6 +245,7 @@ def button_pressed(event):
 
 
 
+
     if freeze_game:
         return
 
@@ -274,17 +277,17 @@ def button_pressed(event):
             is_valid = False
             match piece_type:
                 case Piece.ROOK:
-                    is_valid = valid_rook_move(r1, c1, r2, c2, square_centric_board, bitboard_dict, kings_id, turn)
+                    is_valid = moves.valid_rook_move(r1, c1, r2, c2, square_centric_board, bitboard_dict, kings_id, turn)
                 case Piece.BISHOP:
-                    is_valid = valid_bishop_move(r1, c1, r2, c2, square_centric_board, bitboard_dict, kings_id, turn)
+                    is_valid = moves.valid_bishop_move(r1, c1, r2, c2, square_centric_board, bitboard_dict, kings_id, turn)
                 case Piece.KNIGHT:
-                    is_valid = valid_knight_move(r1, c1, r2, c2, square_centric_board, bitboard_dict, kings_id, turn)
+                    is_valid = moves.valid_knight_move(r1, c1, r2, c2, square_centric_board, bitboard_dict, kings_id, turn)
                 case Piece.QUEEN:
-                    is_valid = valid_queen_move(r1, c1, r2, c2, square_centric_board, bitboard_dict, kings_id, turn)
+                    is_valid = moves.valid_queen_move(r1, c1, r2, c2, square_centric_board, bitboard_dict, kings_id, turn)
                 case Piece.PAWN:
-                    is_valid = valid_pawn_move(r1, c1, r2, c2, square_centric_board, bitboard_dict, last_move, kings_id, turn)
+                    is_valid = moves.valid_pawn_move(r1, c1, r2, c2, square_centric_board, bitboard_dict, last_move, kings_id, turn)
                 case Piece.KING:
-                    is_valid = valid_king_move(r1, c1, r2, c2, square_centric_board, bitboard_dict, kings_id, turn)
+                    is_valid = moves.valid_king_move(r1, c1, r2, c2, square_centric_board, bitboard_dict, kings_id, turn)
             
             if is_valid:
                 last_move[0] = bitboard_dict[id_piece]
@@ -372,10 +375,10 @@ def button_pressed(event):
                     black_king_id = kings_id[1]
                     black_king_row = get_row(bitboard_dict[black_king_id])
                     black_king_col = get_column(bitboard_dict[black_king_id])
-                    move_possible_for_black = move_generation(black_pieces, square_centric_board, bitboard_dict, last_move, kings_id, Color.BLACK)
+                    move_possible_for_black = moves.move_generation(black_pieces, square_centric_board, bitboard_dict, last_move, kings_id, Color.BLACK)
                     is_en_passant_possible_for_next_player = False
                     for i in move_possible_for_black:
-                        if i[3] == MOVE.EN_PASSANT:
+                        if i[3] == moves.MOVE.EN_PASSANT:
                             is_en_passant_possible_for_next_player = True
                             break
                         
@@ -385,8 +388,8 @@ def button_pressed(event):
                         freeze_game = True
                         end_frame = ttk.Frame(canvas)
                         end_frame.grid(column=0, row=0)
-                        if valid_after_scan_for_king_checks_after_move(black_king_row, black_king_col, black_king_row, black_king_col, \
-                                                                    square_centric_board, bitboard_dict, black_king_id, MOVE.NORMAL):
+                        if moves.valid_after_scan_for_king_checks_after_move(black_king_row, black_king_col, black_king_row, black_king_col, \
+                                                                    square_centric_board, bitboard_dict, black_king_id, moves.MOVE.NORMAL):
                             #print("board eval : ", evaluation.evaluate_board(square_centric_board, bitboard_dict))
                             label = ttk.Label(end_frame, text="Draw by stalemate")
                             label.grid(column=0, row=0)
@@ -428,9 +431,16 @@ def button_pressed(event):
                             queen_ctr += 1
                     board_eval = evaluation.evaluate_board(square_centric_board, bitboard_dict, white_pieces, black_pieces)
 
+                    start = dt.datetime.now()
                     what_to_do = evaluation.alpha_beta(3, -inf_, inf_, False, square_centric_board, bitboard_dict, is_en_passant_possible_for_next_player, \
                                             dict_positions, rule_50_moves, Color.BLACK, last_move, kings_id, white_pieces, black_pieces, \
                                                 board_eval, queen_ctr)
+
+                    end = dt.datetime.now()
+                    print(end-start)
+                    print(moves.time_spent)
+                    moves.time_spent = -(dt.datetime.now() - dt.datetime.now())
+                    #time_spent = dt.datetime.now() - dt.datetime.now()
 
 
                     # print(f"move done : {get_color(last_move[0])} {get_type(last_move[0])} {(get_row(last_move[0]), get_column(last_move[0]))}")
@@ -453,11 +463,11 @@ def button_pressed(event):
                     white_king_id = kings_id[0]
                     white_king_row = get_row(bitboard_dict[white_king_id])
                     white_king_col = get_column(bitboard_dict[white_king_id])
-                    move_possible_for_white = move_generation(white_pieces, square_centric_board, bitboard_dict, last_move, kings_id, Color.WHITE)
+                    move_possible_for_white = moves.move_generation(white_pieces, square_centric_board, bitboard_dict, last_move, kings_id, Color.WHITE)
                     #print(move_possible_for_white)
                     is_en_passant_possible_for_next_player = False
                     for i in move_possible_for_white:
-                        if i[3] == MOVE.EN_PASSANT:
+                        if i[3] == moves.MOVE.EN_PASSANT:
                             is_en_passant_possible_for_next_player = True
                             break
                     #print("possible moves for white : ",  move_possible_for_white)
@@ -465,8 +475,8 @@ def button_pressed(event):
                         freeze_game = True
                         end_frame = ttk.Frame(canvas)
                         end_frame.grid(column=0, row=0)
-                        if valid_after_scan_for_king_checks_after_move(white_king_row, white_king_col, white_king_row, white_king_col, \
-                                                                    square_centric_board, bitboard_dict, white_king_id, MOVE.NORMAL):
+                        if moves.valid_after_scan_for_king_checks_after_move(white_king_row, white_king_col, white_king_row, white_king_col, \
+                                                                    square_centric_board, bitboard_dict, white_king_id, moves.MOVE.NORMAL):
                             #print("board eval : ", evaluation.evaluate_board(square_centric_board, bitboard_dict))
                             label = ttk.Label(end_frame, text="Draw by stalemate")
                             label.grid(column=0, row=0)
